@@ -11,11 +11,26 @@
   # description = "Bash library for neighborly signal sharing";
 
   outputs = { self, nixpkgs, flake-utils, flake-compat }:
-    flake-utils.lib.simpleFlake {
-      inherit self nixpkgs;
-      name = "bats-require";
-      overlay = final: prev: {
-        bats-require = final.pkgs.callPackage ./bats-require.nix { };
+    {
+      overlays.default = final: prev: {
+        bats-require = prev.callPackage ./bats-require.nix { };
       };
-    };
+      # shell = ./shell.nix;
+    } // flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [
+            self.overlays.default
+          ];
+        };
+      in
+        {
+          packages = {
+            inherit (pkgs) bats-require;
+            default = pkgs.bats-require;
+            # checks = packages.default.tests;
+          };
+        }
+    );
 }
